@@ -57,6 +57,11 @@ def me(token: str, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     return {"id": user.id, "email": user.email, "pseudo": user.pseudo}
 
+@app.get("/init-db")
+def init_db():
+    models.Base.metadata.create_all(bind=database.engine)
+    return {"message": "Tables créées ✅"}
+
 
 @app.get("/")
 def root():
