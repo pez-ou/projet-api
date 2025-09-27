@@ -56,3 +56,8 @@ def me(token: str, db: Session = Depends(database.get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     return {"id": user.id, "email": user.email, "pseudo": user.pseudo}
+
+
+@app.get("/")
+def root():
+    return {"message": "API en ligne 🚀"}
