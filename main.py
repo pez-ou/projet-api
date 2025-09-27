@@ -1,8 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from . import models, database, auth
 from jose import JWTError, jwt
+import models
+import database
+import auth
+
 
 models.Base.metadata.create_all(bind=database.engine)
 
