@@ -62,6 +62,11 @@ def init_db():
     models.Base.metadata.create_all(bind=database.engine)
     return {"message": "Tables créées ✅"}
 
+@app.get("/check-secret")
+def check_secret():
+    import os
+    return {"SECRET_KEY": os.getenv("SECRET_KEY")}
+
 
 @app.get("/")
 def root():
