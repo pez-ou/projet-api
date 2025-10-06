@@ -1,15 +1,26 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 import models
 import database
 import auth
+import cloudinary
+import cloudinary.uploader
+import os
+
 
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+)
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -61,6 +72,38 @@ def me(token: str, db: Session = Depends(database.get_db)):
 def init_db():
     models.Base.metadata.create_all(bind=database.engine)
     return {"message": "Tables créées ✅"}
+
+@app.post("/upload")
+def upload_image(
+    file: UploadFile = File(...),
+    token: str = None,
+    db: Session = Depends(database.get_db)
+):
+    # Vérifie le token de l'utilisateur
+    user_data = auth.verify_token(token, db)
+    user_id = user_data["user_id"]
+
+    # Envoie l’image vers Cloudinary
+    try:
+        upload_result = cloudinary.uploader.upload(
+            file.file,
+            folder=f"user_{user_id}/",
+            unique_filename=True,
+            overwrite=False
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur upload Cloudinary : {e}")
+
+    # Sauvegarde dans la base
+    new_image = models.Photo(
+        user_id=user_id,
+        url=upload_result["secure_url"],
+        public_id=upload_result["public_id"]
+    )
+    db.add(new_image)
+    db.commit()
+
+    return {"message": "Image uploadée ✅", "url": upload_result["secure_url"]}
 
 @app.get("/")
 def root():
